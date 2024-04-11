@@ -2,31 +2,20 @@ class OrdersController < ApplicationController
   def create
     user = User.find(params["order"]["user_id"])
     item = find_item(params["order"]["item_id"])
-    # Check if the user has reached the maximum transactions
-    if user.orders.this_month.count >= 10
-      render json: { error: "You have reached the maximum number of transactions for this month" }, status: :unprocessable_entity
-      return
-    end
-
-    if item.orders.borrowed.present?
-      render json: { error: "Already borrowed" }, status: :unprocessable_entity
-      return
-    end
-  
-    if user.age < 18 && item.genre == "crime"
-      render json: { error: "Age not valid" }, status: :unprocessable_entity
-      return
-    end
-  
-    if !item_available_for_subscription?(user, item)
-      render json: { error: "The requested item is not available for your subscription plan" }, status: :unprocessable_entity
-      return
-    end
-
-    if user.orders.create(item: item, status: 'borrowed')
-      render json: { success: "Order placed successfully" }, status: :created
+    if max_transactions_reached?(user)
+      render_error("You have reached the maximum number of transactions for this month")
+    elsif item.already_borrowed?
+      render_error("Already borrowed")
+    elsif item.invalid_age_for_genre?(user)
+      render_error("Age not valid")
+    elsif !user.item_available_for_subscription?(item)
+      render_error("The requested item is not available for your subscription plan")
     else
-      render json: { error: "Failed to place order" }, status: :unprocessable_entity
+      if user.orders.create(item: item, status: 'borrowed')
+        render json: { success: "Order placed successfully" }, status: :created
+      else
+        render_error("Failed to place order")
+      end
     end
   end
 
@@ -47,27 +36,16 @@ class OrdersController < ApplicationController
 
   private
 
+  def max_transactions_reached?(user)
+    user.orders.this_month.count >= 10
+  end
+  
+  def render_error(message)
+    render json: { error: message }, status: :unprocessable_entity
+  end
+
   def find_item(item_id)
     Item.find(item_id)
   end
-
-  def item_available_for_subscription?(user, item)
-    magazines_borrowed = user.orders.this_month.where(item: Item.where(item_type: "magazine")).count
-    case user.subscription_plan
-    when "silver"
-      return false if item.is_magazine?
-      return false if user.orders.this_month.where(item: Item.where(item_type: "book")).count >= 2
-      return true
-    when "gold"
-      return false if item.is_magazine? && magazines_borrowed >= 1
-      return false if user.orders.this_month.where(item: Item.where(item_type: "book")).count >= 3
-      return true
-    when "platinum"
-      return false if item.is_magazine? && magazines_borrowed >= 2
-      return false if user.orders.this_month.where(item: Item.where(item_type: "book")).count >= 4
-      return true
-    else
-      return false
-    end
-  end
+  
 end

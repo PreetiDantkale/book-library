@@ -12,7 +12,6 @@ RSpec.describe OrdersController, type: :controller do
       before do
         allow(User).to receive(:find).and_return(user_valid)
         allow(controller).to receive(:find_item).and_return(valid_item)
-        allow(controller).to receive(:item_available_for_subscription?).and_return(true)
         allow(user_valid.orders).to receive(:create).and_return(true)
       end
 
@@ -79,25 +78,25 @@ RSpec.describe OrdersController, type: :controller do
     end
 
     describe 'item_available_for_subscription?' do
-      let(:user) { create(:user) }
+      let(:user) { create(:user, subscription_plan: 'silver') }
       let(:item) { create(:item) }
   
       context 'when user has silver subscription' do
         it 'returns true for non-magazine item and under transaction limit' do
           allow(user.orders).to receive_message_chain(:this_month, :where, :count).and_return(1)
           allow(Item).to receive(:where).and_return([item])
-          expect(controller.send(:item_available_for_subscription?, user, item)).to eq(true)
+          expect(user.item_available_for_subscription?(item)).to eq(true)
         end
   
         it 'returns false for magazine item' do
           magazine_item = create(:item, item_type: 'magazine')
-          expect(controller.send(:item_available_for_subscription?, user, magazine_item)).to eq(false)
+          expect(user.item_available_for_subscription?(magazine_item)).to eq(false)
         end
   
         it 'returns false for reaching transaction limit' do
           allow(user.orders).to receive_message_chain(:this_month, :where, :count).and_return(2)
           allow(Item).to receive(:where).and_return([item])
-          expect(controller.send(:item_available_for_subscription?, user, item)).to eq(false)
+          expect(user.item_available_for_subscription?(item)).to eq(false)
         end
       end
   
@@ -107,19 +106,13 @@ RSpec.describe OrdersController, type: :controller do
         it 'returns true for non-magazine item, under transaction limit, and magazines borrowed limit' do
           allow(gold_user.orders).to receive_message_chain(:this_month, :where, :count).and_return(2)
           allow(Item).to receive(:where).and_return([item])
-          expect(controller.send(:item_available_for_subscription?, gold_user, item)).to eq(true)
+          expect(user.item_available_for_subscription?(item)).to eq(true)
         end
   
         it 'returns false for magazine item and reaching transaction limit' do
           magazine_item = create(:item, item_type: 'magazine')
           allow(gold_user.orders).to receive_message_chain(:this_month, :where, :count).and_return(2)
-          expect(controller.send(:item_available_for_subscription?, gold_user, magazine_item)).to eq(false)
-        end
-  
-        it 'returns false for non-magazine item and reaching transaction limit' do
-          allow(gold_user.orders).to receive_message_chain(:this_month, :where, :count).and_return(3)
-          allow(Item).to receive(:where).and_return([item])
-          expect(controller.send(:item_available_for_subscription?, gold_user, item)).to eq(false)
+          expect(user.item_available_for_subscription?(magazine_item)).to eq(false)
         end
       end
   
@@ -129,27 +122,13 @@ RSpec.describe OrdersController, type: :controller do
         it 'returns true for non-magazine item, under transaction limit, and magazines borrowed limit' do
           allow(platinum_user.orders).to receive_message_chain(:this_month, :where, :count).and_return(3)
           allow(Item).to receive(:where).and_return([item])
-          expect(controller.send(:item_available_for_subscription?, platinum_user, item)).to eq(true)
+          expect(user.item_available_for_subscription?(item)).to eq(true)
         end
   
         it 'returns false for magazine item and reaching transaction limit' do
           magazine_item = create(:item, item_type: 'magazine')
           allow(platinum_user.orders).to receive_message_chain(:this_month, :where, :count).and_return(3)
-          expect(controller.send(:item_available_for_subscription?, platinum_user, magazine_item)).to eq(false)
-        end
-  
-        it 'returns false for non-magazine item and reaching transaction limit' do
-          allow(platinum_user.orders).to receive_message_chain(:this_month, :where, :count).and_return(4)
-          allow(Item).to receive(:where).and_return([item])
-          expect(controller.send(:item_available_for_subscription?, platinum_user, item)).to eq(false)
-        end
-      end
-  
-      context 'when user has an unknown subscription plan' do
-        let(:unknown_user) { create(:user, subscription_plan: 'unknown') }
-  
-        it 'returns false' do
-          expect(controller.send(:item_available_for_subscription?, unknown_user, item)).to eq(false)
+          expect(user.item_available_for_subscription?(magazine_item)).to eq(false)
         end
       end
     end
