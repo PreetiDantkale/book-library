@@ -50,9 +50,9 @@ RSpec.describe OrdersController, type: :controller do
       end
     end
 
-    context 'when user age is less than 18 and item genre is "crime"' do
+    context 'when user age is less than 18 and item genre is "CRIME_GENRE"' do
       let(:user_underage) { create(:user, age: 16) }
-      let(:crime_item) { create(:item, genre: 'crime') }
+      let(:crime_item) { create(:item, genre: 'CRIME_GENRE') }
 
       it 'returns an error for invalid age' do
         post :create, params: { order: { user_id: user_underage.id, item_id: crime_item.id } }
