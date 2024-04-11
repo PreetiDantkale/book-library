@@ -5,4 +5,3 @@ FactoryBot.define do
 		status { "borrowed" }
 	end
 end
-  
