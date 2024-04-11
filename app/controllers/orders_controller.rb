@@ -18,13 +18,11 @@ class OrdersController < ApplicationController
       return
     end
   
-    # Check if the item is available based on the user's subscription plan
     if !item_available_for_subscription?(user, item)
       render json: { error: "The requested item is not available for your subscription plan" }, status: :unprocessable_entity
       return
     end
 
-    # Process the order
     if user.orders.create(item: item, status: 'borrowed')
       render json: { success: "Order placed successfully" }, status: :created
     else
