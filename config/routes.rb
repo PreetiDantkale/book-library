@@ -1,5 +1,7 @@
 Rails.application.routes.draw do
-  get 'orders/create'
+  resources :orders, only: [:create]
+
+  put '/returns', to: 'orders#update'
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Defines the root path route ("/")
