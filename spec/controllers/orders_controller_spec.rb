@@ -46,18 +46,18 @@ RSpec.describe OrdersController, type: :controller do
       it 'returns an error for item already borrowed' do
         post :create, params: { order: { user_id: user.id, item_id: item.id } }
         expect(response).to have_http_status(:unprocessable_entity)
-        expect(JSON.parse(response.body)['error']).to eq('Already borrowed')
+        expect(JSON.parse(response.body)['error']).to eq('This book has already been borrowed')
       end
     end
 
-    context 'when user age is less than 18 and item genre is "CRIME_GENRE"' do
+    context 'when user age is less than 18 and item genre is "crime"' do
       let(:user_underage) { create(:user, age: 16) }
-      let(:crime_item) { create(:item, genre: 'CRIME_GENRE') }
+      let(:crime_item) { create(:item, genre: 'crime') }
 
       it 'returns an error for invalid age' do
         post :create, params: { order: { user_id: user_underage.id, item_id: crime_item.id } }
         expect(response).to have_http_status(:unprocessable_entity)
-        expect(JSON.parse(response.body)['error']).to eq('Age not valid')
+        expect(JSON.parse(response.body)['error']).to eq('Age constraint!')
       end
     end
 
@@ -83,7 +83,7 @@ RSpec.describe OrdersController, type: :controller do
   
       context 'when user has silver subscription' do
         it 'returns true for non-magazine item and under transaction limit' do
-          allow(user.orders).to receive_message_chain(:this_month, :where, :count).and_return(1)
+          allow(user.orders).to receive_message_chain(:this_month, :joins, :where, :count).and_return(1)
           allow(Item).to receive(:where).and_return([item])
           expect(user.item_available_for_subscription?(item)).to eq(true)
         end
@@ -94,7 +94,7 @@ RSpec.describe OrdersController, type: :controller do
         end
   
         it 'returns false for reaching transaction limit' do
-          allow(user.orders).to receive_message_chain(:this_month, :where, :count).and_return(2)
+          allow(user.orders).to receive_message_chain(:this_month, :joins, :where, :count).and_return(2)
           allow(Item).to receive(:where).and_return([item])
           expect(user.item_available_for_subscription?(item)).to eq(false)
         end
